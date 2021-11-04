@@ -1,15 +1,16 @@
-import { useEffect, useState } from "react";
-import Head from "next/head";
-import Image from "next/image";
+import { useEffect, useState } from 'react';
+import { ActionTypes, useStoreContext } from '../store/store-context';
+import Head from 'next/head';
+import Image from 'next/image';
 
-import Banner from "../components/banner";
-import Card from "../components/card";
+import Banner from '../components/banner';
+import Card from '../components/card';
 
-import fetchCoffeeSotres from "../lib/coffee-stores";
+import fetchCoffeeSotres from '../lib/coffee-stores';
 
-import useTrackLocation from "../hooks/use-track-location";
+import useTrackLocation from '../hooks/use-track-location';
 
-import styles from "../styles/Home.module.css";
+import styles from '../styles/Home.module.css';
 
 //Server side
 export async function getStaticProps(context) {
@@ -25,18 +26,29 @@ export async function getStaticProps(context) {
 
 //Client side
 const Home = props => {
-  const { handleTrackLocation, latLong, locationErrorMsg, isFindingLocation } =
+  const { handleTrackLocation, locationErrorMsg, isFindingLocation } =
     useTrackLocation();
 
-  const [coffeeStores, setCoffeeStores] = useState([]);
   const [coffeeStoresError, setCoffeeStoresError] = useState(null);
+
+  const { dispatch, state } = useStoreContext();
+
+  const { coffeeStores, latLong } = state;
 
   useEffect(async () => {
     if (latLong) {
       try {
-        const fetchedCoffeeStores = await fetchCoffeeSotres(latLong, 30);
-        console.log({ fetchedCoffeeStores });
-        setCoffeeStores(fetchedCoffeeStores);
+        const response = await fetch(
+          `/api/getCoffeeStoresByLocation?latLong=${latLong}&limit=30` // Make limit's value dynamic
+        );
+
+        const coffeeStores = await response.json();
+
+        dispatch({
+          type: ActionTypes.SET_COFFEE_STORES,
+          payload: coffeeStores,
+        });
+        setCoffeeStoresError('');
       } catch (error) {
         console.log({ error });
         setCoffeeStoresError(error.message);
@@ -62,11 +74,12 @@ const Home = props => {
 
       <main className={styles.main}>
         <Banner
-          buttonText={isFindingLocation ? "Locating..." : "View stores nearby"}
+          buttonText={isFindingLocation ? 'Locating...' : 'View stores nearby'}
           handleOnClick={handleOnBannerBtnClick}
         />
 
         {locationErrorMsg && <p>Something went wrong: {locationErrorMsg}</p>}
+        {coffeeStoresError && <p>Something went wrong: {coffeeStoresError} </p>}
 
         <div className={styles.heroImage}>
           <Image
