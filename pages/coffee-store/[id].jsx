@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
+import useSWR from 'swr';
 
 import Head from 'next/head';
 import Image from 'next/image';
@@ -14,6 +15,7 @@ import { useStoreContext } from '../../store/store-context';
 
 import { isEmpty } from '../../utils';
 
+// SSG Props
 export async function getStaticProps(staticProps) {
   const params = staticProps.params;
 
@@ -44,19 +46,22 @@ export async function getStaticPaths() {
     fallback: true,
   };
 }
-
+// Component
 const CoffeeStore = initialProps => {
   const router = useRouter();
   if (router.isFallback) return <div>Loading...</div>;
 
   const { id } = router.query;
 
+  // SSG Props to Local State
   const [coffeeStore, setCoffeeStore] = useState(initialProps.coffeeStore);
 
+  // Context State to Props
   const {
     state: { coffeeStores },
   } = useStoreContext();
 
+  // Component Method: Sends new coffee store to API
   const handleCreateCoffeStore = async coffeeStore => {
     try {
       const { id, name, imgUrl, neighborhood, address } = coffeeStore;
@@ -77,14 +82,14 @@ const CoffeeStore = initialProps => {
       });
 
       const dbCoffeeStore = response.json();
-      console.log(dbCoffeeStore);
+      console.log('CoffeeStore form DB:', dbCoffeeStore);
     } catch (error) {
       console.log('Error creating coffee store', error);
     }
   };
 
   useEffect(async () => {
-    // if SSG props are empty, do this:
+    // If SSG props are empty, do this:
     if (isEmpty(initialProps.coffeeStore)) {
       if (coffeeStores.length > 0) {
         const ctxCoffeeStore = await coffeeStores.find(
@@ -97,7 +102,7 @@ const CoffeeStore = initialProps => {
         }
       }
     } else {
-      // SSG
+      // SSG to DB
       handleCreateCoffeStore(initialProps.coffeeStore);
     }
   }, [id, initialProps, initialProps.coffeeStore]);
@@ -107,10 +112,28 @@ const CoffeeStore = initialProps => {
 
   const [votesCount, setVotesCount] = useState(0);
 
+  // SWR config
+  const fetcher = url => fetch(url).then(res => res.json());
+  const { data, error } = useSWR(`/api/getCoffeeStoreById?id=${id}`, fetcher);
+
+  useEffect(() => {
+    if (data && data.length > 0) {
+      console.log('Data form SWR', data);
+      setCoffeeStore(data[0]);
+      setVotesCount(data[0].votes);
+    }
+  }, [data]);
+
   const handleUpvoteButton = () => {
     let count = votesCount + 1;
     setVotesCount(count);
   };
+
+  if (error) {
+    console.log(error);
+    return <div>Something went wrong while retrieving cofee store page.</div>;
+  }
+  if (!data) return <div>Loading data...</div>;
 
   return (
     <div className={styles.layout}>

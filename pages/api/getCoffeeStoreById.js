@@ -12,8 +12,6 @@ const getCoffeeStoreById = async (req, res) => {
       return res.status(404).json({ message: 'id could not be found' });
 
     res.json(records);
-
-    res.json({ message: `id is created ${id}` });
   } catch (error) {
     res.status(500).json({ message: 'something went worng', error });
   }

@@ -29,7 +29,7 @@ const createCoffeeStore = async (req, res) => {
               },
             ]);
 
-            const records = getRecordsFields(createRecords);
+            const records = await getRecordsFields(createRecords);
 
             res.status(201);
             res.json({ message: records });
