@@ -35,26 +35,29 @@ const Home = props => {
 
   const { coffeeStores, latLong } = state;
 
-  useEffect(async () => {
-    if (latLong) {
-      try {
-        const response = await fetch(
-          `/api/getCoffeeStoresByLocation?latLong=${latLong}&limit=30` // Make limit's value dynamic
-        );
+  useEffect(() => {
+    async function fetchData() {
+      if (latLong) {
+        try {
+          const response = await fetch(
+            `/api/getCoffeeStoresByLocation?latLong=${latLong}&limit=30` // Make limit's value dynamic
+          );
 
-        const coffeeStores = await response.json();
+          const coffeeStores = await response.json();
 
-        dispatch({
-          type: ActionTypes.SET_COFFEE_STORES,
-          payload: coffeeStores,
-        });
-        setCoffeeStoresError('');
-      } catch (error) {
-        console.log({ error });
-        setCoffeeStoresError(error.message);
+          dispatch({
+            type: ActionTypes.SET_COFFEE_STORES,
+            payload: coffeeStores,
+          });
+          setCoffeeStoresError('');
+        } catch (error) {
+          console.log({ error });
+          setCoffeeStoresError(error.message);
+        }
       }
     }
-  }, [latLong]);
+    fetchData();
+  }, [latLong, dispatch]);
 
   const handleOnBannerBtnClick = () => {
     handleTrackLocation();

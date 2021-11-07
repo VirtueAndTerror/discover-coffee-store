@@ -81,31 +81,34 @@ const CoffeeStore = initialProps => {
         }),
       });
 
-      const dbCoffeeStore = response.json();
-      console.log('CoffeeStore form DB:', dbCoffeeStore);
+      const dbCoffeeStore = await response.json();
     } catch (error) {
       console.log('Error creating coffee store', error);
     }
   };
 
-  useEffect(async () => {
+  useEffect(() => {
     // If SSG props are empty, do this:
-    if (isEmpty(initialProps.coffeeStore)) {
-      if (coffeeStores.length > 0) {
-        const ctxCoffeeStore = await coffeeStores.find(
-          coffeeStore => coffeeStore.id.toString() === id
-        );
+    async function fetchData() {
+      if (isEmpty(initialProps.coffeeStore)) {
+        if (coffeeStores.length > 0) {
+          const ctxCoffeeStore = await coffeeStores.find(
+            coffeeStore => coffeeStore.id.toString() === id
+          );
 
-        if (ctxCoffeeStore) {
-          setCoffeeStore(ctxCoffeeStore);
-          handleCreateCoffeStore(ctxCoffeeStore);
+          if (ctxCoffeeStore) {
+            setCoffeeStore(ctxCoffeeStore);
+            handleCreateCoffeStore(ctxCoffeeStore);
+          }
         }
+      } else {
+        // SSG to DB
+        handleCreateCoffeStore(initialProps.coffeeStore);
       }
-    } else {
-      // SSG to DB
-      handleCreateCoffeStore(initialProps.coffeeStore);
     }
-  }, [id, initialProps, initialProps.coffeeStore]);
+
+    fetchData();
+  }, [id, initialProps, initialProps.coffeeStore, coffeeStores]);
 
   // Static Site Generated
   const { name, address, neighborhood, imgUrl } = coffeeStore;
@@ -118,19 +121,35 @@ const CoffeeStore = initialProps => {
 
   useEffect(() => {
     if (data && data.length > 0) {
-      console.log('Data form SWR', data);
       setCoffeeStore(data[0]);
       setVotesCount(data[0].votes);
     }
   }, [data]);
 
-  const handleUpvoteButton = () => {
-    let count = votesCount + 1;
-    setVotesCount(count);
+  // Upvote Event Handler
+  const handleUpvoteButton = async () => {
+    try {
+      const response = await fetch('/api/upvoteCoffeeStoreById', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id,
+        }),
+      });
+
+      const dbCoffeeStore = await response.json();
+      if (dbCoffeeStore && dbCoffeeStore.length) {
+        let count = votesCount + 1;
+        setVotesCount(count);
+      }
+    } catch (error) {
+      console.log('Error upvoting coffee store', error);
+    }
   };
 
   if (error) {
-    console.log(error);
     return <div>Something went wrong while retrieving cofee store page.</div>;
   }
   if (!data) return <div>Loading data...</div>;
@@ -192,7 +211,7 @@ const CoffeeStore = initialProps => {
               height={24}
               alt='rank'
             />
-            <p className={styles.text}>1</p>
+            <p className={styles.text}>{votesCount}</p>
           </div>
 
           <button className={styles.upvoteButton} onClick={handleUpvoteButton}>

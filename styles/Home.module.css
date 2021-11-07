@@ -24,7 +24,7 @@
   grid-template-columns: repeat(1, minmax(0, 1fr));
   column-gap: 1.5rem;
   row-gap: 1.5rem;
-  /* margin-top: 6.3rem; */
+  margin-top: 1rem;
 }
 
 .card {
@@ -40,7 +40,7 @@
 }
 
 .sectionWrapper {
-  margin-top: 5rem;
+  margin-top: 2rem;
 }
 
 /** Breakpoints:

@@ -1,5 +1,5 @@
 .container {
-  margin-bottom: 1rem;
+  /* margin-bottom: 1rem; */
 }
 
 .title {
@@ -25,7 +25,7 @@
   font-size: 1.5rem; /* 24px */
   line-height: 2rem; /* 32px */
 
-  color: var(--text-white-100);
+  color: var(--text-purple);
 }
 
 .buttonWrapper {
