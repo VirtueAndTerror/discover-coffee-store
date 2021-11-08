@@ -58,7 +58,7 @@ const CoffeeStore = initialProps => {
     initialProps.coffeeStore
   );
 
-  // Context State to Props
+  // Extract state form storeContext
   const {
     state: { coffeeStores },
   } = useStoreContext();
@@ -121,7 +121,7 @@ const CoffeeStore = initialProps => {
     }
   }, [data]);
 
-  // Upvote Event Handler
+  // Component Method: Upvote Event Handler
   const handleUpvoteButton = async () => {
     try {
       const response = await customFetch('/api/upvoteCoffeeStoreById', 'PUT', {
