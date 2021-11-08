@@ -26,14 +26,14 @@ export async function getStaticProps(context) {
 
 //Client side
 const Home = props => {
-  const { handleTrackLocation, locationErrorMsg, isFindingLocation } =
-    useTrackLocation();
+  // Gets location and stores it in storeCotext
+  const { handleTrackLocation } = useTrackLocation();
 
   const [coffeeStoresError, setCoffeeStoresError] = useState(null);
 
   const { dispatch, state } = useStoreContext();
 
-  const { coffeeStores, latLong } = state;
+  const { coffeeStores, latLong, isFindingLocation, locationErrorMsg } = state;
 
   useEffect(() => {
     async function fetchData() {

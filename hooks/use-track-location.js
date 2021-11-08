@@ -1,47 +1,52 @@
-import { useState, useContext } from "react";
-import { ActionTypes, StoreContext } from "../store/store-context";
+import { useState } from 'react';
+import { ActionTypes, useStoreContext } from '../store/store-context';
 
 const useTrackLocation = () => {
-  const [locationErrorMsg, setLocationErrorMsg] = useState("");
-  // const [latLong, setLatLong] = useState("");
-  const [isFindingLocation, setisFindingLocation] = useState(false);
-
-  const { dispatch } = useContext(StoreContext);
-
-  const success = position => {
-    const { latitude, longitude } = position.coords;
-
-    // setLatLong(`${latitude}, ${longitude}`);
-    dispatch({
-      type: ActionTypes.SET_LAT_LONG,
-      payload: `${latitude}, ${longitude}`,
-    });
-
-    setLocationErrorMsg("");
-    setisFindingLocation(false);
-  };
-
-  const error = () => {
-    setisFindingLocation(false);
-    setLocationErrorMsg("Unable to retreave your location");
-  };
+  const { dispatch } = useStoreContext();
+  const [isFindingLocation, setIsFindingLocation] = useState(false);
+  const [locationErrorMsg, setLocationErrorMsg] = useState('');
 
   const handleTrackLocation = () => {
-    setisFindingLocation(true);
+    setIsFindingLocation(true);
 
     if (!navigator.geolocation) {
-      setLocationErrorMsg("Geolocation is not supported by your browser");
+      setIsFindingLocation(false);
+      setLocationErrorMsg('Geolocation is not supported by your browser');
+
+      dispatch({
+        type: ActionTypes.SET_LAT_LONG,
+        payload: { isFindingLocation, locationErrorMsg },
+      });
     } else {
-      //   status.textContext = "Locating";
       navigator.geolocation.getCurrentPosition(success, error);
     }
   };
 
+  const success = position => {
+    const { latitude, longitude } = position.coords;
+
+    dispatch({
+      type: ActionTypes.SET_LAT_LONG,
+      payload: {
+        latLong: `${latitude}, ${longitude}`,
+        isFindingLocation: false,
+        locationErrorMsg: '',
+      },
+    });
+  };
+
+  const error = () => {
+    dispatch({
+      type: ActionTypes.SET_LAT_LONG,
+      payload: {
+        isFindingLocation: false,
+        locationErrorMsg: 'Unable to retreave your location',
+      },
+    });
+  };
+
   return {
-    // latLong,
     handleTrackLocation,
-    locationErrorMsg,
-    isFindingLocation,
   };
 };
 

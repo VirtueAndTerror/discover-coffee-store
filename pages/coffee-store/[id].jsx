@@ -13,21 +13,19 @@ import fetchCoffeeStores from '../../lib/coffee-stores';
 
 import { useStoreContext } from '../../store/store-context';
 
-import { isEmpty } from '../../utils';
+import { isEmpty, findCoffeStoreById, customFetch } from '../../utils';
 
 // SSG Props
 export async function getStaticProps(staticProps) {
-  const params = staticProps.params;
+  const { id } = staticProps.params;
 
   const coffeeStores = await fetchCoffeeStores();
 
-  const foundCoffeeStore = coffeeStores.find(
-    coffeeStore => coffeeStore.id.toString() === params.id
-  );
+  const coffeeStore = (await findCoffeStoreById(coffeeStores, id)) || {};
 
   return {
     props: {
-      coffeeStore: foundCoffeeStore ? foundCoffeeStore : {},
+      coffeeStore,
     },
   };
 }
@@ -48,13 +46,17 @@ export async function getStaticPaths() {
 }
 // Component
 const CoffeeStore = initialProps => {
-  const router = useRouter();
-  if (router.isFallback) return <div>Loading...</div>;
+  const {
+    isFallback,
+    query: { id },
+  } = useRouter();
 
-  const { id } = router.query;
+  if (isFallback) return <div>Loading...</div>;
 
-  // SSG Props to Local State
-  const [coffeeStore, setCoffeeStore] = useState(initialProps.coffeeStore);
+  // Default: SSG Props to Local State
+  const [localStateCoffeeStore, setCoffeeStore] = useState(
+    initialProps.coffeeStore
+  );
 
   // Context State to Props
   const {
@@ -66,43 +68,35 @@ const CoffeeStore = initialProps => {
     try {
       const { id, name, imgUrl, neighborhood, address } = coffeeStore;
 
-      const response = await fetch('/api/createCoffeeStore', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          id,
-          name,
-          votes: 0,
-          imgUrl,
-          neighborhood: neighborhood || '',
-          address: address || '',
-        }),
+      await customFetch('/api/createCoffeeStore', 'POST', {
+        id,
+        name,
+        imgUrl,
+        votes: 0,
+        neighborhood: neighborhood || '',
+        address: address || '',
       });
-
-      const dbCoffeeStore = await response.json();
     } catch (error) {
       console.log('Error creating coffee store', error);
     }
   };
 
+  // Look for coffee store in SSG props, or storeContext, then save to DB.
   useEffect(() => {
-    // If SSG props are empty, do this:
     async function fetchData() {
+      // If SSG props are empty, retrieve it from Context API
       if (isEmpty(initialProps.coffeeStore)) {
-        if (coffeeStores.length > 0) {
-          const ctxCoffeeStore = await coffeeStores.find(
-            coffeeStore => coffeeStore.id.toString() === id
-          );
-
+        // if storeContex is not empty, go find this coffee store by id
+        if (coffeeStores.length) {
+          const ctxCoffeeStore = await findCoffeStoreById(coffeeStores, id);
+          // if found coffee sotre by id, update local state and save to DB
           if (ctxCoffeeStore) {
             setCoffeeStore(ctxCoffeeStore);
             handleCreateCoffeStore(ctxCoffeeStore);
           }
         }
       } else {
-        // SSG to DB
+        // if SSG is not empty, save SSG conffee sotre to DB
         handleCreateCoffeStore(initialProps.coffeeStore);
       }
     }
@@ -110,8 +104,8 @@ const CoffeeStore = initialProps => {
     fetchData();
   }, [id, initialProps, initialProps.coffeeStore, coffeeStores]);
 
-  // Static Site Generated
-  const { name, address, neighborhood, imgUrl } = coffeeStore;
+  // Local State
+  const { name, address, neighborhood, imgUrl } = localStateCoffeeStore;
 
   const [votesCount, setVotesCount] = useState(0);
 
@@ -119,6 +113,7 @@ const CoffeeStore = initialProps => {
   const fetcher = url => fetch(url).then(res => res.json());
   const { data, error } = useSWR(`/api/getCoffeeStoreById?id=${id}`, fetcher);
 
+  //SWR
   useEffect(() => {
     if (data && data.length > 0) {
       setCoffeeStore(data[0]);
@@ -129,23 +124,18 @@ const CoffeeStore = initialProps => {
   // Upvote Event Handler
   const handleUpvoteButton = async () => {
     try {
-      const response = await fetch('/api/upvoteCoffeeStoreById', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          id,
-        }),
+      const response = await customFetch('/api/upvoteCoffeeStoreById', 'PUT', {
+        id,
       });
 
       const dbCoffeeStore = await response.json();
+
       if (dbCoffeeStore && dbCoffeeStore.length) {
         let count = votesCount + 1;
         setVotesCount(count);
       }
     } catch (error) {
-      console.log('Error upvoting coffee store', error);
+      console.log('Error while upvoting coffee store', error);
     }
   };
 
